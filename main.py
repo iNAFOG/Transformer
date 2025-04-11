@@ -25,7 +25,7 @@ class PositionalEncoding(nn.Module):
         pe =  torch.zeros(seq_len, d_model)
         ##create vector of shape (seq_len,1)
         position =  torch.arange(0, seq_len, d_type=torch.float).unsquueze(1)
-        div_term = torch.exp(torch.arrange(0,d_model,2).float() * (-math.log(10000.0)/d_model)
+        div_term = torch.exp(torch.arrange(0,d_model,2).float() * (-math.log(10000.0)/d_model))
         #apply sin to even and cos to odd indexes
 
         pe[:,0::2] =  torch.sin(position*div_term)
@@ -110,3 +110,47 @@ class MultiHeadAttentionBlock(nn.module):
 
 
         return self.w_o(x) # (Batch, seq_len, d_model)
+    
+class ResidualConnection(nn.Module):
+    def __init__(self, dropout: float) -> None:
+        super().__init__()
+        self.dropout = nn.Dropout(dropout)
+        self.norm = LayerNormalization()
+
+    def forward(self, x, sublayer):
+        return x + self.dropout(sublayer(self.norm(x))) # (Batch, seq_len, d_model)
+    
+class EncoderBlock(nn.Module):
+
+    def __init__(self, self_attention_block : MultiHeadAttentionBlock, feed_forward_block: FeedForward, dropout: float) -> None:
+        super().__init__()
+        self.self_attention_block = self_attention_block
+        self.feed_forward_block = feed_forward_block
+        self.residual_connections = nn.ModuleList([ResidualConnection(dropout) for _ in range(2)])
+
+    def forward(self, x, mask):
+        x = self.residual_connections[0](x, lambda x: self.self_attention_block(x,x,x,mask))
+        x = self.residual_connections[1](x, self.feed_forward_block) 
+        return x
+
+class Encoder(nn.Module):
+    def __init__(self, layers : nn.ModuleList) -> None:
+        super().__init__()
+        self.layers = layers
+        self.norm = LayerNormalization()
+    
+    def forward(self, x, mask):
+        for layer in self.layers:
+            x = layer(x, mask)
+        return self.norm(x)
+    
+class DecoderBlock(nn.Module):
+    def __init__(self, self_attention_block: MultiHeadAttentionBlock, cross_attention_block: MultiHeadAttentionBlock, feed_forward_block: FeedForward, dropout: float) -> None:
+        super().__init__()
+        self.self_attention_block = self_attention_block
+        self.encoder_attention_block = cross_attention_block
+        self.feed_forward_block = feed_forward_block
+        self.residual_connections = nn.ModuleList([ResidualConnection(dropout) for _ in range(3)])
+    
+
+    def forward(self)
