@@ -1,5 +1,5 @@
 import torch
-import torch.nn
+import torch.nn as nn
 import math
 
 class InputEmbeddings(nn.Module):
@@ -63,7 +63,7 @@ class FeedForward(nn.Module):
         # (Batch, seq_len, d_model) -> (Batch, seq_len, d_ff) -> (Batch, seq_len, d_model)
         return self.linear_2(self.dropout(torch.relu(self.linear_1(x))))
 
-class MultiHeadAttentionBlock(nn.module):
+class MultiHeadAttentionBlock(nn.Module):
 
     def __init__(self, d_model:int, h:int, dropout:float) ->None:
         super().__init__()
